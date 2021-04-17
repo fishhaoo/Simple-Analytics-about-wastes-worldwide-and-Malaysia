@@ -1,0 +1,145 @@
+---
+title: "Community Service R Markdown"
+author: "Ng Wei Xiang"
+date: "2/23/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+## Reading of dataset and loading up libraries
+The csv file was read into RStudio and a series of libraries are loaded to support the analysis. This csv file consists of 51 variables in total which contains 6 main sectors. 
+1st : Country details (Country Name, Country Code, GDP, Income ID, Population)
+2nd : Composition of wastes produced (Food, Glass, Metal, Wood, Paper, Plastic, etc)
+3rd : Information regarding wastes
+4th : Special wastes (agriculture, industrial, e-waste, hazordous, medical)
+5th : Waste Collection
+6th : Treatment of wastes (landfill, compost, incineration, open dump, recycling)
+Then, the dataset is built with the name "dataset" while subsetting some variables due to their absence or insufficient of data. 
+
+```{r cars}
+master <- read.csv("country_level_data_0.csv")
+library(summarytools)
+library(dplyr)
+library(ggplot2)
+library(expss)
+library(stargazer)
+
+dataset = subset(master, select=-c(iso3c, region_id, waste_collection_coverage_rural_percent_of_geographic_area, 
+                                   waste_collection_coverage_rural_percent_of_households, waste_collection_coverage_rural_percent_of_population, waste_collection_coverage_total_percent_of_geographic_area
+                                   , waste_collection_coverage_total_percent_of_households, waste_collection_coverage_urban_percent_of_geographic_area, waste_collection_coverage_urban_percent_of_households
+                                   , waste_collection_coverage_urban_percent_of_population, waste_collection_coverage_urban_percent_of_waste, waste_treatment_anaerobic_digestion_percent, 
+                                   waste_treatment_other_percent, waste_treatment_sanitary_landfill_landfill_gas_system_percent))
+
+UMCdata <- subset(dataset, income_id!="HIC" & income_id!="LIC" & income_id!="LMC")
+```
+
+## Big view of the dataset
+
+This piece of code is used to generate a big view or summary on how the data in this dataset behaves. For example, we can see that there are 81 or 37.3% of the countries are in the high income countries(HIC) group taking up the majority while Upper Medium(UMC), Lower Medium(LMC), and Lower Income(LIC) were the minorities. Other than that, looking at the composition of wastes, we can see that food and organic waste had the highest median taking up to 43.2% of the total wastes on average worldwide. Futhermore, we can see that most of the countries do provide information regarding wastes issues with "Yes" taking the majority in each variables. Moving further, it is seen that industrial special wastes took the majority of special wastes produced with an average 520395.8 tonnes produced per year. ABout how wastes are treated, it is seen that most countries prefer to treat wastes by open-dump at 57.7% followed by unspecified landfill by 52%.
+
+```{r pressure, echo=FALSE}
+dfSummary(dataset)
+
+```
+
+## Information provided regarding wastes
+This section is all about information about wastes. We had "information system for solid waste management", "National agency to enforce solid waste", "National law governing solid waste management in the countries", "Rules and regulations", and "Summary of key solid waste information made available to public". It is seen that the majority had a "Yes" which means that there is indeed action taken upon to help waste management. Looking at the "% Total" column, it is pleased to see that 81.57% of the countries indeed had national law in governing solid waste management.However, what is concerning is about the "solid waste made available to public". According to the dataset, only 27.65% of the countries had made information available to the public. In the technology era, information should be accessible easily. Thus, efforts should be put into this section in aid of wastes management.
+
+The next output and barchart further provides vizualization regarding information made available to public issue. Ignoring the empty values, it is seen that the Income countries have a higher probability in providing wastes information to the public compared to others. However, the numbers and percentages are still not really promising and needs further action. 
+
+```{r}
+freq(dataset$other_information_information_system_for_solid_waste_management)
+freq(dataset$other_information_national_agency_to_enforce_solid_waste_laws_and_regulations)
+freq(dataset$other_information_national_law_governing_solid_waste_management_in_the_country)
+freq(dataset$other_information_ppp_rules_and_regulations)
+freq(dataset$other_information_summary_of_key_solid_waste_information_made_available_to_the_public)
+
+ctable(x=dataset$income_id, y=dataset$other_information_summary_of_key_solid_waste_information_made_available_to_the_public, chisq=TRUE)
+ggplot(dataset, aes(other_information_summary_of_key_solid_waste_information_made_available_to_the_public, colour=income_id)) + geom_bar()
+```
+
+## Wastes produced by people worldwide
+
+The output and plot generated below shows a perfect evidence in the average wastes produced per person. It shows that on average, a person generates 0.38 tonnes of wastes per year worldwide with the most to be able to generate 1.59 tonnes of wastes per year. The box chart generated shows that higher income countries tend to have a higher average waste produced per person which is very ironic to the fact that they receive most resources and having better laws and regulation with more information provided to the public. Th upper medium income countries which Malaysia is in was the second group with higher average waste produced. 
+
+```{r}
+avg_waste <- dataset$total_msw_total_msw_generated_tons_year / dataset$population_population_number_of_people
+descr(avg_waste)
+boxplot(avg_waste ~ dataset$income_id)
+```
+
+
+## Special wastes produced by Malaysians
+The generated bar chart shows that the type of special wastes most generated by Malaysians was in the agriculture category. We can understand these by the fact that Malaysia still has a strong agricultural background and is the biggest palm oil exporter in the whole world. 42 million tonnes of them were produced to be exact.
+
+```{r}
+msiadata <- dataset[139, ]
+msia_Agriculture_Waste <- msiadata[ , 19]
+msia_EWaste <- msiadata[ , 21]
+msia_Hazard_Waste <- msiadata[ , 22]
+msia_Industrial_Waste <- msiadata[ , 23]
+msia_Medical_Waste <- msiadata[ , 24]
+msia_Total_Waste <- msiadata[ , 25]
+
+stargazer(msia_Agriculture_Waste, msia_EWaste,msia_Hazard_Waste, msia_Industrial_Waste, msia_Medical_Waste, msia_Total_Waste, type="text")
+
+msia_waste <- c(msia_Agriculture_Waste, msia_EWaste, msia_Hazard_Waste, msia_Industrial_Waste, msia_Medical_Waste)
+barplot(msia_waste, ann=FALSE)
+axis(1, at=1:5, lab=c("Agriculture", "E-Waste", "Hazard", "Industrial", "Medical"))
+
+```
+
+## Normal wastes produced by Malaysians
+
+The pie chart generated below shows that the majority of normal wastes produced by Malaysians were foods at 53% of them. This is followed by paper at 17%, others at 10%, rubber at 8%, and glass, metal, plastic at 3% respectively. This indicates that Malaysians do have an issue in food wastage in particular since food is extremely valuable which requires common effort by all parties to reduce the number.
+
+```{r}
+msia_food <- msiadata[ , 4]
+msia_glass <- msiadata[ , 5]
+msia_metal <- msiadata[ , 6]
+msia_other <- msiadata[ , 7]
+msia_paper <- msiadata[ , 8]
+msia_plastic <- msiadata[ , 9]
+msia_rubber <- msiadata[ , 10]
+msia_wood <- msiadata[ , 11]
+
+msia_normal_waste <- c(msia_food, msia_glass, msia_metal, msia_other, msia_plastic, msia_rubber, msia_wood)
+pie_label_normal <- c("Food & Organic", "Glass", "Metal", "Other", "Paper", "Plastic", "Rubber", "Wood")
+pct_normal <- round(msia_normal_waste/sum(msia_normal_waste)*100)
+pie_label_normal <- paste(pie_label_normal, pct_normal)
+pie_label_normal <- paste(pie_label_normal, "%", sep="")
+pie(msia_normal_waste, labels=pie_label_normal, col=rainbow(length(pie_label_normal)), main="Pie chart distribution on normal wastes produced by Malaysians")
+```
+
+
+## How wastes are treated in Malaysia?
+Looking at the output, we can see that 95% of wastes produced in Malaysia were collected which is a very good reading. Now looking at the pie chart, it seems that most of the wastes were treated through unspecified landfilling. 19% of them are recycled and only 1% are repurposed through compsting. This means that 79% of wastes are wasted just like that without keeping the 3R concept(reuse, reduce, recycle) in mind. We definitely have to give in more effort in treating our wastes in a better way. 
+
+```{r}
+msia_waste_collection_percentage <- msiadata[ , 28]
+msia_compost <- msiadata[ , 29]
+msia_landfill <- msiadata[ , 32]
+msia_recycling <- msiadata[ , 34]
+
+msia_waste_collection_percentage
+
+msia_treatment <- c(msia_compost, msia_landfill, msia_recycling)
+pie_label <- c("Compost", "Landfill", "Recycling")
+pct <- round(msia_treatment/sum(msia_treatment)*100)
+pie_label <- paste(pie_label, pct)
+pie_label <- paste(pie_label, "%", sep="")
+pie(msia_treatment, labels=pie_label, col=rainbow(length(pie_label)), main="Pie chart distribution on how wastes are treated in Malaysia")
+```
+
+
+
+
+
+
